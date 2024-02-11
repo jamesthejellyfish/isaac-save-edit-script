@@ -1,11 +1,181 @@
-filename = "persistentgamedata1.dat"
-achievements = [336, 354, 325]
+filename = r""
+
+"""
+item start offset (no base): 0xAB8
+item end offset (no base): 0xD97?
+base offset: 0x2AE
+some useful data offsets: (not tested, thank you afterbirth save editor)
+"0x4", "Mom Kills",
+"0x8", "Broken Rocks",
+"0xC", "Broken Tinted Rocks",
+"0x10", "Poop Destroyed",
+// "0x14",   "???", Blank
+"0x18", "Death Cards Used?", //?
+"0x1C", "??? (0x1C)", //?
+"0x20", "Arcades Visited?", //?
+"0x24", "Deaths",
+"0x28", "Isaac Kills?",
+"0x2C", "Shop Keepers Destroyed",
+"0x30", "Satan Kills?",
+"0x34", "Shell Game Playcount",
+"0x38", "Angel Items Taken?",
+"0x3C", "Devil Deals Taken?",
+"0x40", "Blood Donations?",
+"0x44", "Slots Destroyed",
+"0x48", "??? (0x48)",
+"0x4C", "Pennies Donated",✅
+"0x50", "Eden Tokens",✅
+"0x54", "Win Streak", 
+"0x58", "Best Streak", ✅
+"0x5C", "??? Kills?",
+"0x60", "Lamb Kills?",
+"0x64", "??? (0x64)",
+"0x1A8", "Loss Streak", 
+"0x1B0", "Pennies Donated (Greed)", 
+"0x254", "Greed Donations (Isaac)",
+"0x258", "Greed Donations (Maggy)",
+"0x25C", "Greed Donations (Cain)",
+"0x260", "Greed Donations (Judas)",
+"0x264", "Greed Donations (???)",
+"0x268", "Greed Donations (Eve)",
+"0x26C", "Greed Donations (Samson)",
+"0x270", "Greed Donations (Azazel)",
+"0x274", "Greed Donations (Lazarus)",
+"0x278", "Greed Donations (Eden)",
+"0x27C", "Greed Donations (The Lost)",
+"0x280", "Greed Donations (Lilith)",
+"0x284", "Greed Donations (Keeper)",
+"0x298", "Caves Cleared",
+"0x29C", "Basements Cleared",
+"0x2A0", "??? (0x2A0)",
+"0x2A4", "Depths Cleared"
+"""
+
+characters = ["Isaac", "Maggy", "Cain", "Judas", "???", "Eve", "Samson", "Azazel", 
+              "Lazarus", "Eden", "The Lost", "Lilith", "Keeper", "Apollyon", "Forgotten", "Bethany",
+              "Jacob & Esau", "T Isaac", "T Maggy", "T Cain", "T Judas", "T ???", "T Eve", "T Samson", "T Azazel", 
+              "T Lazarus", "T Eden", "T Lost", "T Lilith", "T Keeper", "T Apollyon", "T Forgotten", "T Bethany",
+              "T Jacob"]
+checklist_order = ["Isaac's Heart", "Isaac", "Satan", "Boss Rush", "Chest", "Dark Room", "Mega Satan", "Hush", "Greed", "Delirium", "Mother", "Beast"]
 
 def rshift(val, n): 
     return val>>n if val >= 0 else (val+0x100000000)>>n
 
+def getSectionOffsets(data):
+    ofs = 0x14
+    sectData = [-1, -1, -1]
+    entryLens = [1,4,4,1,1,1,1,4,4,1]
+    sectionOffsets = [0] * 10
+    for i in range(len(entryLens)):
+        for j in range(3):
+            sectData[j] = int.from_bytes(data[ofs:ofs+2], 'little', signed=False)
+            ofs += 4
+        if sectionOffsets[i] == 0:
+            sectionOffsets[i] = ofs
+        for j in range(sectData[2]):
+            ofs += entryLens[i]
+    return sectionOffsets
 
-def CalcAfterbirthChecksum(data, ofs, length):
+def updateCheckListUnlocks(data, char_index, new_checklist_data):
+    if char_index == 14:
+        clu_ofs = getSectionOffsets(data)[1] + 0x32C
+        for i in range(len(new_checklist_data)):
+            current_ofs = clu_ofs + i * 4
+            data = alterInt(data, current_ofs, new_checklist_data[i])
+            if i == 8:
+                clu_ofs += 0x4
+            if i == 9:
+                clu_ofs += 0x37C
+            if i == 10:
+                clu_ofs += 0x84
+    elif char_index > 14:
+        clu_ofs = getSectionOffsets(data)[1] + 0x31C
+        for i in range(len(new_checklist_data)):
+            current_ofs = clu_ofs + char_index * 4 + i * 19 * 4
+            data = alterInt(data, current_ofs, new_checklist_data[i])
+            if i == 8:
+                clu_ofs += 0x4C
+            if i == 9:
+                clu_ofs += 0x3C
+            if i == 10:
+                clu_ofs += 0x3C
+    else:
+        clu_ofs = getSectionOffsets(data)[1] + 0x6C
+        for i in range(len(new_checklist_data)):
+            current_ofs = clu_ofs + char_index * 4 + i * 14 * 4
+            data = alterInt(data, current_ofs, new_checklist_data[i])
+            if i == 5:
+                clu_ofs += 0x14
+            if i == 8:
+                clu_ofs += 0x3C
+            if i == 9:
+                clu_ofs += 0x3B0
+            if i == 10:
+                clu_ofs += 0x50
+    return data
+
+def getChecklistUnlocks(data, char_index):
+    checklist_data = []
+    if char_index == 14:
+        clu_ofs = getSectionOffsets(data)[1] + 0x32C
+        for i in range(12):
+            current_ofs = clu_ofs + i * 4
+            checklist_data.append(getInt(data, current_ofs))
+            if i == 8:
+                clu_ofs += 0x4
+            if i == 9:
+                clu_ofs += 0x37C
+            if i == 10:
+                clu_ofs += 0x84
+    elif char_index > 14:
+        clu_ofs = getSectionOffsets(data)[1] + 0x31C
+        for i in range(12):
+            current_ofs = clu_ofs + char_index * 4 + i * 19 * 4
+            checklist_data.append(getInt(data, current_ofs))
+            if i == 8:
+                clu_ofs += 0x4C
+            if i == 9:
+                clu_ofs += 0x3C
+            if i == 10:
+                clu_ofs += 0x3C
+    else:
+        clu_ofs = getSectionOffsets(data)[1] + 0x6C
+        for i in range(12):
+            current_ofs = clu_ofs + char_index * 4 + i * 14 * 4
+            checklist_data.append(getInt(data, current_ofs))
+            if i == 5:
+                clu_ofs += 0x14
+            if i == 8:
+                clu_ofs += 0x3C
+            if i == 9:
+                clu_ofs += 0x3B0
+            if i == 10:
+                clu_ofs += 0x50
+    return checklist_data
+
+def getItems(data):
+    item_data = []
+    offs = getSectionOffsets(data)[3]
+    for i in range(1, 733):
+        item_data.append(getInt(data, offs+i, num_bytes=1))
+    return item_data
+
+def getChallenges(data):
+    challenge_data = []
+    offs = getSectionOffsets(data)[6]
+    for i in range(1, 46):
+        challenge_data.append(getInt(data, offs+i, num_bytes=1))
+    return challenge_data
+
+def getSecrets(data):
+    secrets_data = []
+    offs = getSectionOffsets(data)[0]
+    for i in range(1, 638):
+        secrets_data.append(getInt(data, offs+i, num_bytes=1))
+    return secrets_data
+
+
+def calcAfterbirthChecksum(data, ofs, length):
     CrcTable = [
         0x00000000, 0x09073096, 0x120E612C, 0x1B0951BA, 0xFF6DC419, 0xF66AF48F, 0xED63A535, 0xE46495A3, 
         0xFEDB8832, 0xF7DCB8A4, 0xECD5E91E, 0xE5D2D988, 0x01B64C2B, 0x08B17CBD, 0x13B82D07, 0x1ABF1D91, 
@@ -48,23 +218,87 @@ def CalcAfterbirthChecksum(data, ofs, length):
 
     return ~checksum + 2 ** 32
 
-def unlock_secret(data, achievement):
-    new_data = data[:0x20 + achievement] + b'\x01' + data[0x20 + achievement + 1:] 
+def alterSecret(data, achievement, unlock=True):
+    offs = getSectionOffsets(data)[0]
+    new_data = b'\x00'
+    if unlock:
+        new_data = b'\x01'
+    new_data = data[:offs + achievement] + new_data + data[offs + achievement + 1:] 
     return new_data
 
+def alterChallenge(data, challenge_index, unlock=True):
+    if unlock:
+        val = 1
+    else:
+        val = 0
+    return alterInt(data, getSectionOffsets(data)[6]+challenge_index, val, num_bytes=1)
+
+def alterItem(data, item_index, unlock=True):
+    if unlock:
+        val = 1
+    else:
+        val = 0
+    return alterInt(data, getSectionOffsets(data)[3]+item_index, val, num_bytes=1)
+
+def alterInt(data, offset, new_val, debug=False, num_bytes=2):
+    if debug:
+        print(f"current value: {int.from_bytes(data[offset:offset+num_bytes], 'little')}")
+        print(f"new value: {new_val}")
+    return data[:offset] + new_val.to_bytes(num_bytes, 'little', signed=True) + data[offset + num_bytes:]
+
+def getInt(data, offset, debug=False, num_bytes=2):
+    if debug: print(f"current value: {int.from_bytes(data[offset:offset+num_bytes], 'little', signed=False)}")
+    return int.from_bytes(data[offset:offset+num_bytes], 'little')
+
+def updateSecrets(data, secret_list):
+    for i in range(1, 638):
+        data = alterSecret(data, i, False)
+    for i in secret_list:
+        data = alterSecret(data, int(i))
+    return data
+
+def updateChallenges(data, challenge_list):
+    for i in range(1, 46):
+        data = alterChallenge(data, i, False)
+    for i in challenge_list:
+        data = alterChallenge(data, int(i), True)
+    return data
+
+def updateItems(data, item_list):
+    for i in range(1, 733):
+        if i in [43,59,61,235,587,613,620,630,648,656,662,666,718]:
+            continue
+        data = alterItem(data, i, False)
+    for i in item_list:
+        data = alterItem(data, int(i))
+    return data
+
+def updateChecksum(data):
+    offset = 0x10
+    length = len(data) - offset - 4
+    return data[:offset + length] + calcAfterbirthChecksum(data, offset, length).to_bytes(5, 'little', signed=True)[:4]
+
+# updateWinStreak: alterInt(data, getSectionOffsets(data)[1] + 0x4 + 0x54, 30)
+# updateGreedMachine: alterInt(data, getSectionOffsets(data)[1] + 0x4 + 0x54, 30)
+# updateDonationMachine: alterInt(data, getSectionOffsets(data)[1] + 0x4 + 0x1B0, 30)
 
 if __name__ == "__main__":
     offset = 0x10
     with open(filename, "rb") as file:
         data = file.read()
         length = len(data) - offset - 4
-        checksum = CalcAfterbirthChecksum(data, offset, length).to_bytes(5, 'little', signed=True)[:4]
+        checksum = calcAfterbirthChecksum(data, offset, length).to_bytes(5, 'little', signed=True)[:4]
         print(checksum)
-        old_checksum = data[offset + length:]
-        assert checksum == old_checksum
-    for achievement in achievements:
-       data = unlock_secret(data, achievement)
+        old_checksum = data[offset + length:]    
+    # below are some examples on how to use this script that aren't covered in the gui implementation.
     
+    # update a character's post-it: 0 is not completed, 1 is completed on normal, 2 is completed on hard. order is in checklist_order.
+    data = updateCheckListUnlocks(data, characters.index("Maggie"), [0,0,1,0,2,1,0,1,0,0,0,2])
+    # enable secrets for online beta NOTE: THIS HAS NOT BEEN TESTED ON THE ONLINE BETA!!! USE AT OWN RISK!!!
+    for i in range(638, 641):
+        data = alterSecret(data, i)
+
+
     with open(filename, 'wb') as file:
-        print(CalcAfterbirthChecksum(data, offset, length).to_bytes(5, 'little', signed=True)[:4])
-        file.write(data[:offset + length] + CalcAfterbirthChecksum(data, offset, length).to_bytes(5, 'little', signed=True)[:4])
+        print(calcAfterbirthChecksum(data, offset, length).to_bytes(5, 'little', signed=True)[:4])
+        file.write(updateChecksum(data))
