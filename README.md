@@ -56,11 +56,16 @@ in the "Challenges" Tab, you can manually complete challenges one at a time by c
 
 
 # Manual configuration
-This section is for advanced users who want to modify the functionality of the script, or perform actions that aren't currently supported in the graphical version. This guide assumes you have already set up a python3 environment and are familiar with entering console commands. For more information on how to setup python, visit https://docs.python.org/3/using/index.html
+This section is for advanced users who want to modify the functionality of the script, or perform actions that aren't currently supported in the graphical version. This guide assumes you have already set up a python environment of a version >=3.11 and are familiar with entering console commands. For more information on how to setup python, visit https://docs.python.org/3/using/index.html
 ## Dependencies
 the script file script.py does not have any dependencies, but the gui depends on the tkinter module and the ttkwidgets module. These can be installed using the following command:
 ```bash
 pip install ttkwidgets
+```
+
+The Gui can then be opened using:
+```bash
+python gui.py
 ```
 
 ## more
